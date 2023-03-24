@@ -1,0 +1,173 @@
+// Constants
+const GRID_SIZE = 32;
+const WALL_WIDTH = 2;
+const INTERACTIVE_COLOR = 0x00BFFF; // Cyberpunk blue (light)
+const ANIMATION_COLOR = 0x0080FF; // Cyberpunk blue (darker)
+const BACKGROUND_COLOR = 0x222222; // Darker gray
+
+// State
+let state = {
+    loop: "shapeCreation",
+    brushes: [],
+    selectedBrush: null
+};
+
+// Initialization functions
+function configInit() {
+    // Initialize configuration
+}
+
+function brushInit() {
+    // Initialize brushes
+    for (let i = 0; i < 3; i++) {
+        state.brushes.push({
+            x: PS.random(GRID_SIZE - 1),
+            y: PS.random(GRID_SIZE - 1),
+            floating: true
+        });
+    }
+}
+
+function shapeInit() {
+    // Initialize shapes
+}
+
+function mergeInit() {
+    // Initialize shape merging
+}
+
+// State check functions
+function isInShapeCreationLoop() {
+    return state.loop === "shapeCreation";
+}
+
+function isInShapeMergingLoop() {
+    return state.loop === "shapeMerging";
+}
+
+function switchLoop() {
+    state.loop = state.loop === "shapeCreation" ? "shapeMerging" : "shapeCreation";
+}
+
+// Interaction functions
+function brushInteract(x, y) {
+    // Check if the interaction is within the grid (excluding the outer wall)
+    if (x >= WALL_WIDTH && x < GRID_SIZE + WALL_WIDTH &&
+        y >= WALL_WIDTH && y < GRID_SIZE + WALL_WIDTH) {
+
+        // Check if a brush is clicked
+        const clickedBrush = state.brushes.find(brush => brush.x + WALL_WIDTH === x && brush.y + WALL_WIDTH === y);
+        if (clickedBrush) {
+            if (state.selectedBrush) {
+                state.selectedBrush.floating = true;
+            }
+            state.selectedBrush = clickedBrush;
+            state.selectedBrush.floating = false;
+        } else if (state.selectedBrush) {
+            // Draw with the selected brush
+            PS.color(x, y, PS.random(0xFFFFFF));
+        }
+    }
+}
+
+function shapeCreate(x, y, width, height) {
+    // Create a new shape
+}
+
+function generateAnimationOrEffect() {
+    // Generate animation or effect based on final shape composition and colors
+}
+
+function resetCanvas() {
+    // Reset the canvas
+}
+
+function mergeInteract(x, y) {
+    // Handle shape merging interaction
+}
+
+function mergeUpdate() {
+    // Update shape merging states
+}
+
+function updateBrushes() {
+    state.brushes.forEach((brush) => {
+        if (!brush.attached) {
+            brush.x = (brush.x + PS.random(3) - 2) % GRID_SIZE;
+            brush.y = (brush.y + PS.random(3) - 2) % GRID_SIZE;
+            console.log(brush.x, brush.y)
+            PS.color(brush.x, brush.y, brush.color);
+        }
+    });
+}
+
+// Game object
+const game = {
+    initialize: function () {
+        configInit();
+        brushInit();
+        shapeInit();
+        game.drawOuterBoard();
+    },
+
+    drawOuterBoard: function() {
+        PS.gridSize(GRID_SIZE + 2 * WALL_WIDTH, GRID_SIZE + 2 * WALL_WIDTH);
+        PS.gridColor(BACKGROUND_COLOR);
+
+        // Draw the wall based on the current mode
+        const wallColor = isInShapeCreationLoop() ? INTERACTIVE_COLOR : ANIMATION_COLOR;
+        for (let i = 0; i < GRID_SIZE; i++) {
+            for (let j = 0; j < GRID_SIZE; j++) {
+                if (i < WALL_WIDTH || j < WALL_WIDTH || i >= GRID_SIZE - WALL_WIDTH || j >= GRID_SIZE - WALL_WIDTH) {
+                    PS.color(i, j, wallColor);
+                } else {
+                    PS.color(i, j, PS.COLOR_WHITE);
+                }
+            }
+        }
+
+        // Update brushes initially
+        updateBrushes();
+    },
+
+    interact: function (x, y) {
+        if (isInShapeCreationLoop()) {
+            brushInteract(x, y);
+        } else if (isInShapeMergingLoop()) {
+            mergeInteract(x, y);
+        }
+    },
+
+    update: function () {
+        if (isInShapeMergingLoop()) {
+            mergeUpdate();
+        }
+        updateBrushes();
+    },
+
+    reset: function () {
+        resetCanvas();
+        switchLoop();
+        game.initialize();
+    },
+};
+
+PS.init = function (system, options) {
+    game.initialize();
+};
+
+PS.touch = function (x, y, data, options) {
+    game.interact(x, y);
+};
+
+PS.release = function (x, y, data, options) {
+    game.update();
+};
+
+PS.enter = function (x, y, data, options) {
+    game.interact(x, y);
+};
+
+PS.exit = function (x, y, data, options) {
+    game.reset();
+};

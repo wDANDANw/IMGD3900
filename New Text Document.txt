@@ -1,0 +1,177 @@
+// Game Configuration
+const GAME_CONFIG = {
+  WIDTH: 32,
+  HEIGHT: 32,
+  GRID_BACKGROUND_COLOR: 0xcccccc,
+  STATUS_COLOR: 0x000000,
+};
+
+// Initialize grid
+function initializeGrid() {
+  PS.gridSize(GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
+  PS.gridColor(GAME_CONFIG.GRID_BACKGROUND_COLOR);
+  PS.border(PS.ALL, PS.ALL, 0);
+  PS.statusColor(GAME_CONFIG.STATUS_COLOR);
+  PS.statusText("Growing Garden");
+}
+
+PS.init = function (system, options) {
+  "use strict";
+  initializeGrid();
+  SeedInventory.init();
+  WeatherSystem.init();
+  TimeSystem.init();
+
+  PS.timerStart(6, update); // Call the update function every 6 frames
+};
+
+PS.touch = function (x, y, data, options) {
+  "use strict";
+  SeedInventory.handleTouch(x, y);
+};
+
+function update() {
+  TimeSystem.update();
+  WeatherSystem.update();
+  Plant.updateAll();
+}
+
+PS.keyDown = function (key, shift, ctrl, options) {
+  "use strict";
+
+  // Set the selected seed when keys 1, 2, or 3 are pressed
+  if (key === 49) { // Key 1
+    SeedInventory.selectSeed(0);
+  } else if (key === 50) { // Key 2
+    SeedInventory.selectSeed(1);
+  } else if (key === 51) { // Key 3
+    SeedInventory.selectSeed(2);
+  }
+};
+
+// SeedInventory
+const SeedInventory = {
+    selectedSeed: null,
+    seeds: ["plantA", "plantB", "plantC"],
+
+    init: function () {
+        // Initialize seed display or other UI elements if needed
+    },
+
+    handleTouch: function (x, y) {
+        if (this.selectedSeed !== null) {
+            Plant.createPlant(this.selectedSeed, x, y);
+        }
+    },
+
+    selectSeed: function (index) {
+        this.selectedSeed = this.seeds[index];
+    }
+};
+
+// Plant
+const Plant = {
+    plants: [],
+
+    createPlant: function (type, x, y) {
+        const plant = new this.PlantObject(type, x, y);
+        this.plants.push(plant);
+        plant.render();
+    },
+
+updateAll: function () {
+  this.plants.forEach((plant) => {
+    plant.update();
+  });
+},
+
+    PlantObject: function (type, x, y) {
+        this.type = type;
+        this.x = x;
+        this.y = y;
+        this.stage = 0;
+
+        this.render = function () {
+            // Render plant on grid
+            PS.color(this.x, this.y, this.getColor());
+        };
+
+this.update = function () {
+  // Update plant growth and behavior based on type, time, and weather
+  if (TimeSystem.tickCounter % 5 === 0) {
+    if (this.type === "plantA") {
+      this.stage++;
+    } else if (this.type === "plantB") {
+      this.stage += 2;
+    } else if (this.type === "plantC") {
+      this.stage += 3;
+    }
+    this.render();
+  }
+};
+
+this.getColor = function () {
+  // Return color based on plant type and stage
+  if (this.type === "plantA") {
+    return PS.COLOR_GREEN;
+  } else if (this.type === "plantB") {
+    return PS.COLOR_BLUE;
+  } else if (this.type === "plantC") {
+    return PS.COLOR_RED;
+  }
+  // Add color variations depending on the plant's growth stage
+  var color = PS.makeRGB(this.stage * 10, this.stage * 10, this.stage * 10);
+  return color;
+};
+
+    }
+};
+
+// WeatherSystem
+const WeatherSystem = {
+    weather: "clear",
+    weatherDuration: 0,
+
+    init: function () {
+        this.setWeather("clear");
+    },
+
+    update: function () {
+        this.weatherDuration--;
+        if (this.weatherDuration <= 0) {
+            this.setWeather(this.randomWeather());
+        }
+    },
+
+    setWeather: function (weather) {
+        this.weather = weather;
+        this.weatherDuration = this.randomDuration();
+    },
+
+    randomWeather: function () {
+        const weatherOptions = ["clear", "rain", "sunshine"];
+        const index = PS.random(weatherOptions.length) - 1;
+        return weatherOptions[index];
+    },
+
+    randomDuration: function () {
+        return PS.random(100) + 50;
+    }
+};
+
+// TimeSystem
+const TimeSystem = {
+    tickCounter: 0,
+    day: 0,
+
+    init: function () {
+        PS.timerStart(1, this.update);
+    },
+
+    update: function () {
+        TimeSystem.tickCounter++;
+        if (TimeSystem.tickCounter % 100 === 0) {
+            TimeSystem.day++;
+        }
+    }
+};
